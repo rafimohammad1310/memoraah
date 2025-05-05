@@ -40,7 +40,7 @@ export default function AdminProducts() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentProductId, setCurrentProductId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const router = useRouter();
+  
 
   // Fetch all products
   useEffect(() => {

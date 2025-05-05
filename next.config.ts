@@ -17,10 +17,12 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Enable WebSocket support
-  experimental: {
-    serverExternalPackages: ['ws'],
-  },
+  serverExternalPackages: ['ws'],
+  env: {
+    NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    NEXT_PUBLIC_RAZORPAY_TEST_MODE: process.env.NEXT_PUBLIC_RAZORPAY_TEST_MODE,
+    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
+  }
 };
 
 export default nextConfig;
