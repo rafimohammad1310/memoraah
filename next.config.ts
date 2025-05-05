@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   },
   // Enable WebSocket support
   experimental: {
-    serverComponentsExternalPackages: ['ws'],
+    serverExternalPackages: ['ws'],
   },
 };
 
