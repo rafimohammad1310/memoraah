@@ -1,6 +1,6 @@
 "use client";
 
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ShoppingCart, Star, Gift, Heart } from "lucide-react";
@@ -9,11 +9,22 @@ import { products } from "@/data/products";
 import Navbar from "@/components/Navbar";
 import CategoryNav from "@/components/CategoryNav";
 
+// Define proper interface for Product
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  images: string[];
+  category: string;
+}
+
 export default function Home() {
   const { cartItems, totalPrice, addToCart } = useCart();
   const [showCart, setShowCart] = useState(false);
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
       try {
@@ -22,6 +33,8 @@ export default function Home() {
         setFeaturedProducts(data);
       } catch (error) {
         console.error("Error fetching featured products:", error);
+        // Fallback to static products if API fails
+        setFeaturedProducts(products.slice(0, 4) as unknown as Product[]);
       } finally {
         setLoading(false);
       }
@@ -29,33 +42,44 @@ export default function Home() {
 
     fetchFeaturedProducts();
   }, []);
+  
   const handleCheckout = () => {
-    const options = {
-      key: "rzp_test_FOAiHIpRFqmi6t",
-      amount: totalPrice * 100,
-      currency: "INR",
-      name: "My Gift Store",
-      description: "A few gifts for you",
-      image: "/logo.png",
-      handler: function (response: any) {
-        alert("Payment successful!");
-        console.log(response);
-      },
-      prefill: {
-        name: "John Doe",
-        email: "johndoe@example.com",
-        contact: "9999999999",
-      },
-      notes: {
-        address: "Razorpay Corporate Office",
-      },
-      theme: {
-        color: "#FF5733",
-      },
-    };
+    if (typeof window !== "undefined" && (window as any).Razorpay) {
+      const options = {
+        key: "rzp_test_FOAiHIpRFqmi6t",
+        amount: totalPrice * 100,
+        currency: "INR",
+        name: "My Gift Store",
+        description: "A few gifts for you",
+        image: "/logo.png",
+        handler: function (response: any) {
+          alert("Payment successful!");
+          console.log(response);
+        },
+        prefill: {
+          name: "John Doe",
+          email: "johndoe@example.com",
+          contact: "9999999999",
+        },
+        notes: {
+          address: "Razorpay Corporate Office",
+        },
+        theme: {
+          color: "#FF5733",
+        },
+      };
 
-    const rzp1 = new window.Razorpay(options);
-    rzp1.open();
+      const rzp1 = new (window as any).Razorpay(options);
+      rzp1.open();
+    } else {
+      console.error("Razorpay SDK not loaded");
+      alert("Payment gateway not available. Please try again later.");
+    }
+  };
+
+  // Function to safely format price
+  const formatPrice = (price: number) => {
+    return isNaN(price) ? "0.00" : price.toFixed(2);
   };
 
   return (
@@ -83,55 +107,54 @@ export default function Home() {
       </section>
 
       {/* Featured Categories */}
-   
-<section className="py-16 px-4">
-  <div className="max-w-6xl mx-auto">
-    <h2 className="text-3xl font-bold text-center mb-12">
-      Shop By Category
-    </h2>
-    
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {[
-        {
-          id: "for-him",
-          name: "For Him",
-          icon: <Gift className="w-8 h-8 mb-3" />,
-          description: "Thoughtful gifts for men",
-        },
-        {
-          id: "for-her",
-          name: "For Her",
-          icon: <Heart className="w-8 h-8 mb-3" />,
-          description: "Beautiful presents for women",
-        },
-        {
-          id: "for-kids",
-          name: "For Kids",
-          icon: <Star className="w-8 h-8 mb-3" />,
-          description: "Fun and playful items",
-        },
-        {
-          id: "special-occasions",
-          name: "Special Occasions",
-          icon: <Gift className="w-8 h-8 mb-3" />,
-          description: "Perfect for celebrations",
-        },
-      ].map((category) => (
-        <Link
-          key={category.id}
-          href={`/products?category=${category.id}`} // Add category parameter
-          className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition text-center"
-        >
-          <div className="text-pink-500 flex justify-center">
-            {category.icon}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Shop By Category
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                id: "for-him",
+                name: "For Him",
+                icon: <Gift className="w-8 h-8 mb-3" />,
+                description: "Thoughtful gifts for men",
+              },
+              {
+                id: "for-her",
+                name: "For Her",
+                icon: <Heart className="w-8 h-8 mb-3" />,
+                description: "Beautiful presents for women",
+              },
+              {
+                id: "for-kids",
+                name: "For Kids",
+                icon: <Star className="w-8 h-8 mb-3" />,
+                description: "Fun and playful items",
+              },
+              {
+                id: "special-occasions",
+                name: "Special Occasions",
+                icon: <Gift className="w-8 h-8 mb-3" />,
+                description: "Perfect for celebrations",
+              },
+            ].map((category) => (
+              <Link
+                key={category.id}
+                href={`/products?category=${category.id}`}
+                className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition text-center"
+              >
+                <div className="text-pink-500 flex justify-center">
+                  {category.icon}
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
+                <p className="text-gray-500">{category.description}</p>
+              </Link>
+            ))}
           </div>
-          <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
-          <p className="text-gray-500">{category.description}</p>
-        </Link>
-      ))}
-    </div>
-  </div>
-</section>
+        </div>
+      </section>
 
       {/* Featured Products */}
       <section className="py-16 px-4 bg-white">
@@ -146,20 +169,27 @@ export default function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {products.slice(0, 4).map((product) => (
+            {/* Use featuredProducts from state if available, otherwise use the static products */}
+            {(featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4)).map((product) => (
               <div
                 key={product.id}
                 className="group relative bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition"
               >
                 <div className="aspect-square relative">
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
+                  {product.images && product.images.length > 0 ? (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <Gift className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
                   <button
-                    onClick={() => addToCart(product.id)}
+                    onClick={() => addToCart(product)} // Pass the entire product object
                     className="absolute bottom-4 right-4 bg-pink-500 text-white p-2 rounded-full hover:bg-pink-600 transition opacity-0 group-hover:opacity-100"
                   >
                     <ShoppingCart className="w-5 h-5" />
@@ -169,7 +199,7 @@ export default function Home() {
                   <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
                   <div className="flex justify-between items-center">
                     <span className="text-pink-600 font-bold">
-                      ₹{product.price}
+                      ₹{formatPrice(product.price)}
                     </span>
                     <div className="flex items-center text-yellow-400">
                       <Star className="w-4 h-4 fill-current" />
@@ -248,7 +278,7 @@ export default function Home() {
                   : "bg-pink-700 hover:bg-pink-800"
               }`}
             >
-              Checkout (₹{totalPrice})
+              Checkout (₹{formatPrice(totalPrice)})
             </button>
           </div>
         </div>
@@ -263,7 +293,7 @@ export default function Home() {
           >
             <div className="flex items-center">
               <ShoppingCart className="w-6 h-6" />
-              <span className="ml-2 font-medium">₹{totalPrice}</span>
+              <span className="ml-2 font-medium">₹{formatPrice(totalPrice)}</span>
             </div>
           </button>
         </div>

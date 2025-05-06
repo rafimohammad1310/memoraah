@@ -2,132 +2,100 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { FiShoppingCart, FiHeart, FiStar, FiEye } from "react-icons/fi";
-import { toast } from "react-hot-toast";
+import Link from "next/link";
+import { useCart } from "@/context/CartContext";
 
 interface Product {
   id: string;
   name: string;
   price: number;
+  description: string;
   images: string[];
   category: string;
-  description?: string;
-  rating?: number;
 }
 
-export default function ProductCard({ product }: { product: Product }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+interface ProductCardProps {
+  product: Product;
+  categoryName: string;
+}
 
-  const addToCart = () => {
-    // In a real app, you would use a state management solution
-    // or context API to manage the cart globally
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existingItem = cart.find((item: any) => item.id === product.id);
-    
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      cart.push({ ...product, quantity: 1 });
-    }
-    
-    localStorage.setItem("cart", JSON.stringify(cart));
-    toast.success(`${product.name} added to cart`);
-    // Dispatch event to update cart count in navbar
-    window.dispatchEvent(new Event("cartUpdated"));
-  };
+export default function ProductCard({ product, categoryName }: ProductCardProps) {
+  const { addToCart } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
 
-  const toggleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    toast.success(
-      isWishlisted 
-        ? `Removed from wishlist` 
-        : `Added to wishlist`
-    );
+  const handleAddToCart = () => {
+    setIsAdding(true);
+    addToCart(product);
+    
+    // Show feedback for a short time
+    setTimeout(() => {
+      setIsAdding(false);
+    }, 1000);
   };
 
   return (
-    <div 
-      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="relative aspect-square">
-        <Image
-          src={product.images[0] || "/placeholder-product.jpg"}
-          alt={product.name}
-          fill
-          className="object-cover transition-opacity duration-300"
-          style={{ opacity: isHovered ? 0.9 : 1 }}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-        />
-        
-        {/* Quick actions overlay */}
-        <div className={`absolute inset-0 flex items-center justify-center gap-2 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isHovered ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-          <button 
-            onClick={addToCart}
-            className="p-3 bg-white rounded-full shadow-md hover:bg-pink-50 hover:text-pink-500 transition-colors"
-            aria-label="Add to cart"
-          >
-            <FiShoppingCart className="w-5 h-5" />
-          </button>
-          <Link
-            href={`/product/${product.id}`}
-            className="p-3 bg-white rounded-full shadow-md hover:bg-pink-50 hover:text-pink-500 transition-colors"
-            aria-label="View details"
-          >
-            <FiEye className="w-5 h-5" />
-          </Link>
-        </div>
-        
-        {/* Wishlist button */}
-        <button 
-          onClick={toggleWishlist}
-          className={`absolute top-3 right-3 p-2 rounded-full transition-colors ${isWishlisted ? 'text-pink-500 bg-pink-50' : 'text-gray-400 bg-white'}`}
-          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-        >
-          <FiHeart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
-        </button>
-        
-        {/* Category badge */}
-        <span className="absolute bottom-3 left-3 bg-pink-500 text-white text-xs px-2 py-1 rounded-full">
-          {product.category.replace("-", " ")}
-        </span>
-      </div>
-      
-      <div className="p-4">
-        <div className="flex justify-between items-start gap-2">
-          <h2 className="font-medium text-gray-900 line-clamp-1">
-            {product.name}
-          </h2>
-          <span className="font-medium text-gray-900 whitespace-nowrap">
-            ${product.price.toFixed(2)}
-          </span>
-        </div>
-        
-        {product.rating && (
-          <div className="flex items-center mt-1 mb-2">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <FiStar 
-                  key={i}
-                  className={`w-4 h-4 ${i < Math.floor(product.rating!) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-                />
-              ))}
-            </div>
-            <span className="text-xs text-gray-500 ml-1">({product.rating})</span>
+    <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+      <div className="relative h-60 w-full overflow-hidden">
+        {product.images && product.images.length > 0 ? (
+          <Image
+            src={product.images[0]}
+            alt={product.name}
+            fill
+            style={{ objectFit: "cover" }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            quality={85}
+          />
+        ) : (
+          <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-400"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="9" cy="9" r="2" />
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+            </svg>
           </div>
         )}
+        <div className="absolute top-2 right-2 bg-pink-500 text-white text-xs font-bold px-2 py-1 rounded">
+          {categoryName}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <Link href={`/products/${product.id}`}>
+          <h3 className="font-semibold text-lg mb-1 hover:text-pink-500 transition-colors">
+            {product.name}
+          </h3>
+        </Link>
         
-        <div className="flex gap-2 mt-3">
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+          {product.description}
+        </p>
+        
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-lg">
+            ${product.price.toFixed(2)}
+          </span>
+          
           <button
-            onClick={addToCart}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition text-sm"
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all 
+              ${isAdding 
+                ? 'bg-green-500 text-white' 
+                : 'bg-pink-500 text-white hover:bg-pink-600'}`}
           >
-            <FiShoppingCart className="w-4 h-4" />
-            Add to Cart
+            {isAdding ? 'Added!' : 'Add to Cart'}
           </button>
         </div>
       </div>

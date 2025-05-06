@@ -1,18 +1,10 @@
 // src/app/layout.tsx
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans, GeistMono } from "geist/font";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+//import { AuthProvider } from "@/context/AuthContext"; // Optional: if you have a custom auth context
+import { SessionProvider } from "next-auth/react";
+import { AuthProvider } from '@/context/AuthContext';
 export const metadata = {
   title: "My Gift Store",
   description: "Your one-stop store for gifts and collectibles",
@@ -24,17 +16,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
         <script
           src="https://checkout.razorpay.com/v1/checkout.js"
           type="text/javascript"
+          async
         ></script>
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <CartProvider>
-          {children}
-        </CartProvider>
+      <body className="antialiased">
+      <AuthProvider>
+        <SessionProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </SessionProvider>
+        </AuthProvider>
       </body>
     </html>
   );

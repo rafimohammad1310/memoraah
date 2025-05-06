@@ -3,17 +3,17 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import ProductCard from "@/components/ProductCard";
 import Image from "next/image";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
-
 interface Product {
   id: string;
   name: string;
   price: number;
   description: string;
   images: string[];
-  category: string; // Ensure this matches admin form values
+  category: string;
 }
 
 export default function ProductsPage() {
@@ -29,7 +29,6 @@ export default function ProductsPage() {
         setLoading(true);
         setError("");
         
-        // Add category to API request if specified
         const url = category 
           ? `/api/products?category=${encodeURIComponent(category)}` 
           : "/api/products";
@@ -51,14 +50,13 @@ export default function ProductsPage() {
     };
 
     fetchProducts();
-  }, [category]); // Re-fetch when category changes
+  }, [category]);
 
-  // Category mapping - must match admin form values exactly
   const getCategoryName = (category: string) => {
     const categories: Record<string, string> = {
       "for-him": "For Him",
       "for-her": "For Her",
-      "for-kids": "For Kid",
+      "for-kids": "For Kids",
       "special-occasions": "Special Occasions"
     };
     return categories[category] || category;
@@ -69,7 +67,10 @@ export default function ProductsPage() {
       <div className="min-h-screen bg-gray-100">
         <Navbar />
         <div className="flex justify-center items-center h-64">
-          <p>Loading products...</p>
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p>Loading products...</p>
+          </div>
         </div>
       </div>
     );
@@ -88,40 +89,50 @@ export default function ProductsPage() {
         <div className="flex justify-center gap-4 mb-8 flex-wrap">
           <Link 
             href="/products" 
-            className={`px-4 py-2 rounded ${
-              !category ? 'bg-pink-500 text-white' : 'bg-gray-200'
+            className={`px-4 py-2 rounded-lg transition-all ${
+              !category 
+                ? 'bg-pink-500 text-white shadow-md' 
+                : 'bg-gray-200 hover:bg-gray-300'
             }`}
           >
             All
           </Link>
           <Link 
             href="/products?category=for-him" 
-            className={`px-4 py-2 rounded ${
-              category === 'for-him' ? 'bg-pink-500 text-white' : 'bg-gray-200'
+            className={`px-4 py-2 rounded-lg transition-all ${
+              category === 'for-him' 
+                ? 'bg-pink-500 text-white shadow-md' 
+                : 'bg-gray-200 hover:bg-gray-300'
             }`}
           >
             For Him
           </Link>
           <Link 
             href="/products?category=for-her" 
-            className={`px-4 py-2 rounded ${
-              category === 'for-her' ? 'bg-pink-500 text-white' : 'bg-gray-200'
+            className={`px-4 py-2 rounded-lg transition-all ${
+              category === 'for-her' 
+                ? 'bg-pink-500 text-white shadow-md' 
+                : 'bg-gray-200 hover:bg-gray-300'
             }`}
           >
             For Her
           </Link>
           <Link 
             href="/products?category=for-kids" 
-            className={`px-4 py-2 rounded ${
-              category === 'for-kids' ? 'bg-pink-500 text-white' : 'bg-gray-200'
+            className={`px-4 py-2 rounded-lg transition-all ${
+              category === 'for-kids' 
+                ? 'bg-pink-500 text-white shadow-md' 
+                : 'bg-gray-200 hover:bg-gray-300'
             }`}
           >
             For Kids
           </Link>
           <Link 
             href="/products?category=special-occasions" 
-            className={`px-4 py-2 rounded ${
-              category === 'special-occasions' ? 'bg-pink-500 text-white' : 'bg-gray-200'
+            className={`px-4 py-2 rounded-lg transition-all ${
+              category === 'special-occasions' 
+                ? 'bg-pink-500 text-white shadow-md' 
+                : 'bg-gray-200 hover:bg-gray-300'
             }`}
           >
             Special Occasions
@@ -129,61 +140,65 @@ export default function ProductsPage() {
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 text-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 text-center max-w-md mx-auto">
             {error}
           </div>
         )}
 
         {products.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-lg mb-4">
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm max-w-md mx-auto p-6">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="text-gray-400"
+              >
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
               {category 
-                ? `No products found in ${getCategoryName(category)} category` 
+                ? `No products in ${getCategoryName(category)}` 
                 : "No products available"}
+            </h3>
+            <p className="text-gray-500 mb-4">
+              {category 
+                ? "Check back later or browse other categories" 
+                : "Our inventory is currently empty. Please check back soon."}
             </p>
-            {category && (
+            {category ? (
               <Link 
                 href="/products" 
-                className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600"
+                className="inline-flex items-center px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
               >
                 View All Products
               </Link>
+            ) : (
+              <button 
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Refresh Page
+              </button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white shadow rounded-2xl overflow-hidden hover:shadow-lg transition"
-              >
-                <Link href={`/product/${product.id}`}>
-                  <div className="relative w-full h-56">
-                    <Image
-                      src={product.images[0] || "/placeholder-product.jpg"}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute bottom-2 left-2 bg-pink-500 text-white text-xs px-2 py-1 rounded">
-                      {getCategoryName(product.category)}
-                    </div>
-                  </div>
-                </Link>
-                <div className="p-4">
-                  <h2 className="text-xl font-semibold">{product.name}</h2>
-                  <p className="text-gray-600">₹{product.price}</p>
-                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">
-                    {product.description}
-                  </p>
-                  <Link
-                    href={`/product/${product.id}`}
-                    className="mt-3 inline-block px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                categoryName={getCategoryName(product.category)}
+              />
             ))}
           </div>
         )}

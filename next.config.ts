@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     domains: [
       'images.unsplash.com',
@@ -22,7 +22,12 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     NEXT_PUBLIC_RAZORPAY_TEST_MODE: process.env.NEXT_PUBLIC_RAZORPAY_TEST_MODE,
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
-  }
+  },
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
