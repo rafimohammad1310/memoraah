@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import { GeistSans, GeistMono } from "geist/font";
 import "./globals.css";
+import Footer from '@/components/Footer';
 import { CartProvider } from "@/context/CartContext";
 //import { AuthProvider } from "@/context/AuthContext"; // Optional: if you have a custom auth context
 import { SessionProvider } from "next-auth/react";
@@ -29,6 +30,7 @@ export default function RootLayout({
         <SessionProvider>
           <CartProvider>
             {children}
+             <Footer />
           </CartProvider>
         </SessionProvider>
         </AuthProvider>
