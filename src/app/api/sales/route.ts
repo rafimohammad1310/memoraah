@@ -1,6 +1,6 @@
 // src/app/api/sales/route.ts
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, hasFirebaseAdminCredentials } from '@/lib/firebase-admin';
 import { subMonths, format, eachMonthOfInterval } from 'date-fns';
 import { requireAdmin } from '@/lib/admin/requireAdmin';
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (response) return response;
   try {
     // Verify Firebase connection
-    if (!adminDb) {
+    if (!hasFirebaseAdminCredentials()) {
       throw new Error('Firebase Admin not initialized');
     }
 

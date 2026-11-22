@@ -10,19 +10,26 @@ export async function GET() {
       success: true,
       firestoreConnected: testDoc.exists,
       config: {
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-        privateKeyConfigured: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY
+        projectIdConfigured: Boolean(
+          process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        ),
+        clientEmailConfigured: Boolean(
+          process.env.FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL
+        ),
+        privateKeyConfigured: Boolean(
+          process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_ADMIN_PRIVATE_KEY
+        )
       }
     });
   } catch (error) {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      env: {
-        privateKeyStart: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.substring(0, 30),
-        privateKeyEnd: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.slice(-30)
-      }
+      configPresent: Boolean(
+        (process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) &&
+        (process.env.FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL) &&
+        (process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_ADMIN_PRIVATE_KEY)
+      )
     }, { status: 500 });
   }
 }
