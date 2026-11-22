@@ -3,7 +3,6 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/firebase/config";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,6 +15,10 @@ export const authOptions: NextAuthOptions = {
       credentials: {},
       async authorize(credentials) {
         try {
+          // Initialize the Firebase client only when credentials are actually checked.
+          // This prevents Next.js from requiring Firebase client env vars while
+          // collecting page data during the production build.
+          const { auth } = await import("@/firebase/config");
           const { email, password } = credentials as {
             email: string;
             password: string;
