@@ -6,7 +6,19 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import { useAuth } from "@/context/AuthContext";
 
-interface UserProfile { [key: string]: unknown; cart?: { id: string; quantity: number }[] }
+interface UserProfile {
+  [key: string]: unknown;
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  orders?: unknown[];
+  referralCode?: string;
+  successfulReferrals?: number;
+  referralEarnings?: number;
+  pendingReferrals?: number;
+  cart?: { id: string; quantity: number }[];
+}
 interface UserContextValue { user: User | null; profile: UserProfile | null; loading: boolean }
 const UserContext = createContext<UserContextValue>({ user: null, profile: null, loading: true });
 

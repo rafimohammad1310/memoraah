@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
@@ -13,19 +13,19 @@ import {
   User,
   applyActionCode,
   verifyPasswordResetCode,
-  reload,
   UserCredential,
   setPersistence,
   browserLocalPersistence,
   signOut
 } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 import { auth, db } from "@/firebase/config";
 import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import Image from "next/image";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
-export default function AuthPage() {
+function AuthPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,7 +37,6 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [verificationChecked, setVerificationChecked] = useState(false);
   const [manualRefreshLoading, setManualRefreshLoading] = useState(false);
 
@@ -70,7 +69,8 @@ export default function AuthPage() {
               await auth.currentUser.reload();
               await auth.currentUser.getIdToken(true);
               router.push(redirectPath);
-            } catch (error: any) {
+            } catch (error) {
+              if (!(error instanceof FirebaseError)) throw error;
               if (error.code === 'auth/user-token-expired') {
                 setError("Verification complete but session expired. Please log in again.");
                 await signOut(auth);
@@ -82,7 +82,7 @@ export default function AuthPage() {
             const verifiedEmail = await verifyPasswordResetCode(auth, oobCode);
             router.push(`/login?email=${encodeURIComponent(verifiedEmail)}&verified=true&redirect=${redirectPath}`);
           }
-        } catch (error) {
+        } catch {
           setError("Email verification failed. The link may have expired or been already used.");
         } finally {
           setLoading(false);
@@ -95,7 +95,6 @@ export default function AuthPage() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
 
       if (user) {
         if (!user.emailVerified) {
@@ -132,10 +131,10 @@ export default function AuthPage() {
         setVerificationChecked(true);
         router.push(redirectPath);
       }
-    } catch (error: any) {
+    } catch (error) {
+      if (!(error instanceof FirebaseError)) throw error;
       if (error.code === 'auth/user-token-expired') {
         setError("Your session has expired. Please log in again.");
-        setCurrentUser(null);
       } else {
         console.error("Verification check error:", error);
       }
@@ -226,7 +225,7 @@ export default function AuthPage() {
         
         await setDoc(doc(db, "users", userCredential.user.uid), userData);
       }
-    } catch (err: any) {
+    } catch (err) {
       handleAuthError(err);
     } finally {
       setLoading(false);
@@ -238,15 +237,18 @@ export default function AuthPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       await handleSocialSignIn(result);
-    } catch (err) {
+    } catch {
       setError("Failed to sign in with Google");
     }
   };
 
-  const handleAuthError = (err: any) => {
+  const handleAuthError = (err: unknown) => {
     let errorMessage = "An error occurred";
+    const authError = err instanceof FirebaseError
+      ? err
+      : new FirebaseError("auth/unknown", err instanceof Error ? err.message : "Authentication failed");
 
-    switch (err.code) {
+    switch (authError.code) {
       case "auth/email-already-in-use":
         errorMessage = "Email already in use";
         break;
@@ -264,7 +266,7 @@ export default function AuthPage() {
         errorMessage = "Too many attempts. Try again later";
         break;
       default:
-        errorMessage = err.message || "Authentication failed";
+        errorMessage = authError.message || "Authentication failed";
     }
 
     setError(errorMessage);
@@ -277,7 +279,7 @@ export default function AuthPage() {
         await sendEmailVerification(auth.currentUser);
         setError("New verification email sent. Please check your inbox.");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to resend verification. Please try again.");
     } finally {
       setLoading(false);
@@ -322,10 +324,10 @@ export default function AuthPage() {
           {emailSent ? (
             <div className="space-y-4 text-center">
               <p className="text-gray-600">
-                We've sent a verification link to <span className="font-medium">{email}</span>.
+                We&apos;ve sent a verification link to <span className="font-medium">{email}</span>.
               </p>
               <p className="text-sm text-gray-500">
-                You'll be automatically redirected once verified. This may take a few seconds.
+                You&apos;ll be automatically redirected once verified. This may take a few seconds.
               </p>
 
               <div className="pt-4">
@@ -350,7 +352,7 @@ export default function AuthPage() {
                         setError("Email not verified yet. Please check your inbox.");
                       }
                     }
-                  } catch (err) {
+                  } catch {
                     setError("Failed to check verification status. Try logging in again.");
                   } finally {
                     setManualRefreshLoading(false);
@@ -455,5 +457,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+      <AuthPageContent />
+    </Suspense>
   );
 }

@@ -3,8 +3,8 @@
 import { useUser } from "@/context/UserContext";
 
 export default function ReferralDashboard() {
-  const { user } = useUser();
-  const referralLink = `${window.location.origin}/?ref=${user?.referralCode}`;
+  const { profile } = useUser();
+  const referralLink = `${window.location.origin}/?ref=${profile?.referralCode || ""}`;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -31,15 +31,15 @@ export default function ReferralDashboard() {
       <div className="grid md:grid-cols-3 gap-4">
         <div className="bg-blue-50 p-4 rounded-lg">
           <p className="text-sm text-blue-600">Total Referrals</p>
-          <p className="text-2xl font-bold">{user?.successfulReferrals || 0}</p>
+          <p className="text-2xl font-bold">{profile?.successfulReferrals || 0}</p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <p className="text-sm text-green-600">Total Earnings</p>
-          <p className="text-2xl font-bold">₹{user?.referralEarnings?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-bold">₹{profile?.referralEarnings?.toFixed(2) || '0.00'}</p>
         </div>
         <div className="bg-purple-50 p-4 rounded-lg">
           <p className="text-sm text-purple-600">Pending Verification</p>
-          <p className="text-2xl font-bold">{user?.pendingReferrals || 0}</p>
+          <p className="text-2xl font-bold">{profile?.pendingReferrals || 0}</p>
         </div>
       </div>
     </div>

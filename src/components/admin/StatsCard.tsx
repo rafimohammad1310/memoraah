@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 // components/admin/StatsCard.tsx
 interface StatsCardProps {
   title: string;

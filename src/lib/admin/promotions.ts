@@ -1,4 +1,3 @@
-import { Promotion } from "@/types/promotion";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 

@@ -5,19 +5,31 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export function RealTimeStats() {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    revenue: number;
+    orders: number;
+    monthlySales: Record<string, number>;
+  }>({
     revenue: 0,
     orders: 0,
-    monthlySales: {}
+    monthlySales: {},
   });
 
   useEffect(() => {
     const unsubscribeMetrics = onSnapshot(doc(db, "dashboard/metrics"), (doc) => {
-      setStats(prev => ({ ...prev, ...doc.data() }));
+      const data = doc.data();
+      setStats(prev => ({
+        ...prev,
+        revenue: Number(data?.revenue) || 0,
+        orders: Number(data?.orders) || 0,
+      }));
     });
 
     const unsubscribeSales = onSnapshot(doc(db, "dashboard/sales"), (doc) => {
-      setStats(prev => ({ ...prev, monthlySales: doc.data() || {} }));
+      const monthlySales = Object.fromEntries(
+        Object.entries(doc.data() || {}).map(([month, amount]) => [month, Number(amount) || 0])
+      );
+      setStats(prev => ({ ...prev, monthlySales }));
     });
 
     return () => {

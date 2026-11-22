@@ -34,19 +34,12 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-  const { user, profile } = useUser();
+  const { user } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
-  const [referrer, setReferrer] = useState<string | null>(null);
-
   useEffect(() => {
-    // Get referrer from localStorage (client-side only)
-    if (typeof window !== 'undefined') {
-      setReferrer(localStorage.getItem("memoraah_ref"));
-    }
-
     if (!user) {
       router.push("/login");
       return;

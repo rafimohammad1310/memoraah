@@ -1,7 +1,7 @@
 // src/components/ui/skeleton.tsx
 import * as React from "react";
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {}
+type SkeletonProps = React.HTMLAttributes<HTMLDivElement>;
 
 const Skeleton = ({ className, ...props }: SkeletonProps) => (
   <div

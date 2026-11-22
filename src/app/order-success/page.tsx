@@ -1,7 +1,7 @@
 "use client";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useCart } from "@/context/CartContext";
 import { db } from "@/lib/firebase";
 import {
@@ -21,7 +21,6 @@ import {
   FiAlertCircle,
   FiShoppingBag,
   FiTruck,
-  FiHome,
   FiPackage,
   FiUser,
   FiCalendar,
@@ -57,11 +56,11 @@ interface OrderData {
   timestamp: Date;
   status: string;
   paymentId?: string;
-  coupon?: any;
+  coupon?: { code: string; discountAmount?: number };
   userId?: string;
 }
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const { clearCart } = useCart();
   const [orderId, setOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -71,7 +70,7 @@ export default function OrderSuccessPage() {
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const orderProcessed = useRef(false);
-  const [activeStep, setActiveStep] = useState(3);
+  const [activeStep] = useState(3);
 
   useEffect(() => {
     if (orderProcessed.current) return;
@@ -214,7 +213,7 @@ export default function OrderSuccessPage() {
     paymentId: string | null,
     items: CartItem[],
     total: number,
-    coupon?: any
+    coupon?: OrderData["coupon"]
   ) => {
     try {
       const auth = getAuth();
@@ -324,7 +323,7 @@ export default function OrderSuccessPage() {
           <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl shadow-sm p-8 border border-gray-200">
             <div className="w-14 h-14 border-[5px] border-gray-200 border-t-purple-700 rounded-full animate-spin mb-6"></div>
             <h3 className="text-xl font-medium text-gray-900">Processing Your Order</h3>
-            <p className="text-gray-500 mt-2">We're preparing your confirmation</p>
+            <p className="text-gray-500 mt-2">We&apos;re preparing your confirmation</p>
           </div>
         ) : (
           <OrderSuccessCard
@@ -373,7 +372,7 @@ function OrderSuccessCard({
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch (e) {
+    } catch {
       return 'Date not available';
     }
   };
@@ -625,5 +624,13 @@ function OrderSuccessCard({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading order details...</div>}>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

@@ -30,14 +30,17 @@ const products = [
   },
 ];
 
+type Product = (typeof products)[number];
+
 export default function ProductDetail() {
   const router = useRouter();
   const { id } = router.query;  // Get the product id from the URL
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState<Product | undefined>(undefined);
 
   useEffect(() => {
     if (id) {
-      const selectedProduct = products.find((prod) => prod.id.toString() === id);
+      const productId = Array.isArray(id) ? id[0] : id;
+      const selectedProduct = products.find((prod) => prod.id.toString() === productId);
       setProduct(selectedProduct);
     }
   }, [id]);

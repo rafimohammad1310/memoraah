@@ -22,6 +22,10 @@ interface Promotion {
   isActive: boolean;
 }
 
+interface RazorpayPaymentResponse {
+  razorpay_payment_id?: string;
+}
+
 export default function CheckoutPage() {
   const { cartItems, totalPrice } = useCart();
   const [formData, setFormData] = useState({
@@ -60,7 +64,7 @@ export default function CheckoutPage() {
       document.body.removeChild(script);
       unsubscribe();
     };
-  }, []);
+  }, [auth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -181,7 +185,7 @@ export default function CheckoutPage() {
       name: "Memoraah",
       description: `Order for ${formData.name}`,
       image: "/logo.png",
-      handler: function (response: any) {
+      handler: function (response: RazorpayPaymentResponse) {
         if (response.razorpay_payment_id) {
           const orderData = JSON.parse(localStorage.getItem('pendingOrder') || '{}');
           orderData.paymentId = response.razorpay_payment_id;
@@ -212,8 +216,8 @@ export default function CheckoutPage() {
       }
     };
     try {
-      if ((window as any).Razorpay) {
-        const rzp = new (window as any).Razorpay(options);
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options);
         rzp.open();
       } else {
         throw new Error("Payment gateway not loaded");
@@ -427,13 +431,13 @@ export default function CheckoutPage() {
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Redirecting to Payment Gateway</h3>
                     <p className="text-gray-500">Please complete your payment in the popup window</p>
-                    <p className="text-sm text-gray-400 mt-4">If the payment window didn't open, check your browser's popup settings</p>
+                    <p className="text-sm text-gray-400 mt-4">If the payment window didn&apos;t open, check your browser&apos;s popup settings</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
                       <h3 className="font-medium text-yellow-800 mb-2">Payment Method</h3>
-                      <p className="text-sm text-yellow-700">We'll redirect you to Razorpay's secure payment gateway to complete your transaction</p>
+                      <p className="text-sm text-yellow-700">We&apos;ll redirect you to Razorpay&apos;s secure payment gateway to complete your transaction</p>
                     </div>
                     <button
                       onClick={handlePayment}

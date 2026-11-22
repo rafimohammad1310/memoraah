@@ -6,7 +6,7 @@
  */
 export const loadRazorpay = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (typeof window !== 'undefined' && (window as any).Razorpay) {
+    if (typeof window !== 'undefined' && window.Razorpay) {
       return resolve();
     }
 
@@ -34,10 +34,16 @@ interface RazorpayOptions {
   theme: {
     color: string;
   };
-  handler?: (response: any) => void;
+  handler?: (response: RazorpayPaymentResponse) => void;
   modal?: {
     ondismiss?: () => void;
   };
+}
+
+interface RazorpayPaymentResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
 }
 
 /**
@@ -45,13 +51,17 @@ interface RazorpayOptions {
  */
 export const initiateRazorpayPayment = async (
   options: RazorpayOptions
-): Promise<any> => {
+): Promise<RazorpayPaymentResponse> => {
   await loadRazorpay();
 
   return new Promise((resolve, reject) => {
-    const rzp = new (window as any).Razorpay({
+    if (!window.Razorpay) {
+      reject(new Error('Razorpay SDK is unavailable'));
+      return;
+    }
+    const rzp = new window.Razorpay({
       ...options,
-      handler: (response: any) => {
+      handler: (response: RazorpayPaymentResponse) => {
         resolve(response);
       },
       modal: {

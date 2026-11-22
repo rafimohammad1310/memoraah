@@ -202,7 +202,7 @@ export default function ProfilePage() {
               {/* Render order history if available */}
             </div>
           ) : (
-            <p className="mt-2 text-gray-500">You haven't placed any orders yet.</p>
+            <p className="mt-2 text-gray-500">You haven&apos;t placed any orders yet.</p>
           )}
         </div>
       </div>

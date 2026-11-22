@@ -28,15 +28,18 @@ export default async function handler(
       currency: currency || 'INR',
       receipt,
       notes,
-      payment_capture: 1
+      payment_capture: true
     });
 
     return res.status(200).json(order);
-  } catch (error: any) {
-    console.error('Razorpay error:', error.error || error);
+  } catch (error: unknown) {
+    const razorpayError = error && typeof error === 'object'
+      ? error as { error?: { description?: string }; message?: string }
+      : undefined;
+    console.error('Razorpay error:', razorpayError?.error || error);
     return res.status(500).json({ 
       error: 'Failed to create order',
-      details: error.error?.description || error.message 
+      details: razorpayError?.error?.description || razorpayError?.message || 'Unknown error'
     });
   }
 }

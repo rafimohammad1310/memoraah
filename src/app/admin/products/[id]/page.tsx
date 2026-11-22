@@ -226,7 +226,7 @@ export default function ProductForm() {
                           type="file"
                           multiple
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={() => {
                             // Handle image uploads
                             // This would need to be implemented with your storage solution
                           }}

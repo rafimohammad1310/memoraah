@@ -1,6 +1,6 @@
 // lib/storage.ts
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { app } from "./firebase";
+import { app } from "@/firebase/config";
 
 const storage = getStorage(app);
 

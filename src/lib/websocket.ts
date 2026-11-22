@@ -1,7 +1,7 @@
 // src/lib/websocket.ts
 interface WebSocketOptions {
   url: string;
-  onMessage: (data: any) => void;
+  onMessage: (data: unknown) => void;
   onError?: (error: string) => void;
   onStatusChange?: (isConnected: boolean) => void;
   maxRetries?: number;

@@ -7,7 +7,6 @@ import {
   Users,
   TrendingUp,
   Package,
-  ShoppingBag,
   FileText,
   Settings,
   Percent,

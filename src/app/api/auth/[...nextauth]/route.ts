@@ -1,7 +1,6 @@
 //my-gift-store\src\app\api\auth\[...nextauth]
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth";
-import GoogleProvider from "next-auth/providers/google";
 
 const handler = NextAuth(authOptions);
 

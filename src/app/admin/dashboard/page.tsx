@@ -60,8 +60,6 @@ const fetchData = async () => {
     fetchData();
   }, []);
 
-  const monthlyChange = null;
-
   if (loading) {
     return (
       <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -120,7 +118,7 @@ const fetchData = async () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-            <p className="text-gray-500 mt-1">Welcome back! Here's what's happening with your store today.</p>
+            <p className="text-gray-500 mt-1">Welcome back! Here&apos;s what&apos;s happening with your store today.</p>
           </div>
           <div className="flex items-center space-x-4">
             <button 
@@ -189,7 +187,7 @@ const fetchData = async () => {
   action={
     <select 
       className="text-sm border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-      onChange={(e) => {
+      onChange={() => {
         // Handle time period change
         fetchData();
       }}

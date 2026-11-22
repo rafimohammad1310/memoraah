@@ -1,24 +1,45 @@
 // app/account/promoter/page.tsx
 "use client";
+import { useEffect, useState } from "react";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
+import { db } from "@/lib/firebase";
+
+interface Promoter {
+  referralCode: string;
+  totalEarnings?: number;
+  pendingEarnings?: number;
+}
+
+interface Commission {
+  createdAt?: { toDate: () => Date };
+  orderId: string;
+  amount: number;
+  status: string;
+}
 
 export default function PromoterPortal() {
   const { user } = useUser();
-  const [promoter, setPromoter] = useState(null);
-  const [commissions, setCommissions] = useState([]);
+  const [promoter, setPromoter] = useState<Promoter | null>(null);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const email = user?.email;
+    if (!email) {
+      setLoading(false);
+      return;
+    }
     const fetchData = async () => {
       // Get promoter data
       const promoterQuery = query(
         collection(db, "promoters"),
-        where("email", "==", user.email)
+        where("email", "==", email)
       );
       const promoterSnapshot = await getDocs(promoterQuery);
       
       if (!promoterSnapshot.empty) {
-        setPromoter(promoterSnapshot.docs[0].data());
+        setPromoter(promoterSnapshot.docs[0].data() as Promoter);
         
         // Get commissions
         const commissionsQuery = query(
@@ -27,14 +48,14 @@ export default function PromoterPortal() {
           orderBy("createdAt", "desc")
         );
         const commissionsSnapshot = await getDocs(commissionsQuery);
-        setCommissions(commissionsSnapshot.docs.map(doc => doc.data()));
+        setCommissions(commissionsSnapshot.docs.map(doc => doc.data() as Commission));
       }
       
       setLoading(false);
     };
     
     fetchData();
-  }, [user]);
+  }, [user?.email]);
 
   if (loading) return <div>Loading...</div>;
   if (!promoter) return <div>No promoter account found</div>;

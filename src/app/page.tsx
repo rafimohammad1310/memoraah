@@ -32,12 +32,6 @@ type RazorpayOptions = {
   theme: { color: string };
 };
 
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => { open: () => void };
-  }
-}
-
 const PLACEHOLDER_IMAGES = {
   CATEGORY_HIM: "/image1.png",
   CATEGORY_HER: "/image2.png",
