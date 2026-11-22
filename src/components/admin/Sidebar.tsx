@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
 
 const menuItems = [
   { name: "Dashboard", path: "/admin/dashboard" },
@@ -18,7 +17,6 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleLogout = async () => {
     try {
@@ -31,20 +29,20 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-white shadow-md">
-      <div className="p-4 border-b">
-        <h1 className="text-xl font-bold">Admin Panel</h1>
+    <aside className="w-full shrink-0 border-b border-[#eee8f7] bg-white shadow-sm md:w-64 md:border-b-0 md:border-r">
+      <div className="border-b border-[#eee8f7] p-4">
+        <h1 className="text-xl font-bold text-[#553987]">Admin Panel</h1>
       </div>
-      <nav className="p-4">
-        <ul className="space-y-2">
+      <nav className="p-3 md:p-4">
+        <ul className="flex gap-2 overflow-x-auto md:flex-col md:space-y-2 md:gap-0">
           {menuItems.map((item) => (
             <li key={item.path}>
               <Link
                 href={item.path}
-                className={`block px-4 py-2 rounded-md ${
+                className={`block whitespace-nowrap rounded-md px-4 py-2 text-sm ${
                   pathname === item.path
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
+                    ? "bg-[#f0eafa] font-semibold text-[#6946a3]"
+                    : "text-gray-700 hover:bg-[#faf8fd]"
                 }`}
               >
                 {item.name}
@@ -53,7 +51,7 @@ export default function Sidebar() {
           ))}
         </ul>
       </nav>
-      <div className="p-4 border-t">
+      <div className="border-t border-[#eee8f7] p-3 md:p-4">
         <button
           onClick={handleLogout}
           className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-md"
@@ -61,6 +59,6 @@ export default function Sidebar() {
           Logout
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

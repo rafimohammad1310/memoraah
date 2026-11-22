@@ -1,11 +1,17 @@
 import type { NextConfig } from "next";
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   images: {
-    domains: [
-      'images.unsplash.com',
-      'google.com',
-      'another-image-host.com'
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        pathname: '/v0/b/**',
+      },
     ],
   },
   webpack: (config, { isServer }) => {
@@ -17,7 +23,6 @@ const nextConfig = {
     }
     return config;
   },
-  serverExternalPackages: ['ws'],
   env: {
     NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     NEXT_PUBLIC_RAZORPAY_TEST_MODE: process.env.NEXT_PUBLIC_RAZORPAY_TEST_MODE,
@@ -30,4 +35,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

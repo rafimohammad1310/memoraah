@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingCart, ArrowLeft, Upload, Check, X, Camera, Sparkles, Palette, Type, ChevronDown } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Check, X, Camera, Sparkles, Palette, Type } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 
 interface CustomizationOption {
   id: string;
@@ -26,6 +27,7 @@ interface CustomizationOption {
 
 export default function CustomPage() {
   const { addToCart } = useCart();
+  const siteSettings = useSiteSettings();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export default function CustomPage() {
       name: "Custom Polaroid Set",
       description: "Set of 10 polaroid prints with your photos and custom text",
       basePrice: 599,
-      image: "/products/polaroid-set.jpg",
+      image: "/image1.png",
       options: [
         {
           name: "Size",
@@ -63,7 +65,7 @@ export default function CustomPage() {
       name: "Custom Metal Art",
       description: "Convert your photos into elegant metal wall art",
       basePrice: 1299,
-      image: "/products/metal-art.jpg",
+      image: "/image2.png",
       options: [
         {
           name: "Size",
@@ -87,7 +89,7 @@ export default function CustomPage() {
       name: "3D Photo Miniature",
       description: "Turn your favorite moments into a 3D miniature diorama",
       basePrice: 1599,
-      image: "/products/3d-miniature.jpg",
+      image: "/bgwpolraids.png",
       options: [
         {
           name: "Size",
@@ -111,7 +113,7 @@ export default function CustomPage() {
       name: "Custom Acrylic Frame",
       description: "Elegant acrylic frame with your photo and custom message",
       basePrice: 899,
-      image: "/products/acrylic-frame.jpg",
+      image: "/about-image.png",
       options: [
         {
           name: "Size",
@@ -133,8 +135,9 @@ export default function CustomPage() {
     }
   ];
 
+  const visibleCustomizationProducts = customizationProducts.map((product, index) => ({...product, image: siteSettings.customImages[index] || product.image}));
   const findSelectedProduct = () => {
-    return customizationProducts.find(product => product.id === selectedProduct) || null;
+    return visibleCustomizationProducts.find(product => product.id === selectedProduct) || null;
   };
 
   const calculateTotalPrice = () => {
@@ -182,7 +185,7 @@ export default function CustomPage() {
     setActiveStep(2);
     
     // Set default options
-    const product = customizationProducts.find(p => p.id === productId);
+    const product = visibleCustomizationProducts.find(p => p.id === productId);
     if (product && product.options) {
       const defaultOptions: Record<string, string> = {};
       product.options.forEach(option => {
@@ -245,7 +248,7 @@ export default function CustomPage() {
           <div className="space-y-8">
             <h2 className="text-2xl font-bold">1. Choose Your Item Type</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {customizationProducts.map((product) => (
+              {visibleCustomizationProducts.map((product) => (
                 <div 
                   key={product.id}
                   className={`relative bg-white border rounded-xl overflow-hidden cursor-pointer transition ${

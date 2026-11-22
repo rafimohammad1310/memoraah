@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { categories } from "@/data/categories";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { getProductById, saveProduct } from "@/lib/admin/products";
 import { useEffect, useState } from "react";
 
@@ -38,9 +38,10 @@ const formSchema = z.object({
   images: z.array(z.string().url()).min(1, "At least one image is required"),
 });
 
-export default function ProductForm({ params }: { params: { id: string } }) {
+export default function ProductForm() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const isNew = params.id === "new";
 
   const form = useForm<z.infer<typeof formSchema>>({

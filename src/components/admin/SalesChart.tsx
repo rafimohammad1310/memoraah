@@ -10,10 +10,11 @@ import {
   Title,
   Tooltip,
   Legend,
+  type TooltipItem,
 } from "chart.js";
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import { ReliableWebSocket } from '@/lib/websocket';
+import { adminFetch } from '@/lib/admin/client';
 
 ChartJS.register(
   CategoryScale,
@@ -39,15 +40,13 @@ export function SalesChart() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [wsInstance, setWsInstance] = useState<ReliableWebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
   const fetchSalesData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('/api/sales');
+      const response = await adminFetch('/api/sales');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -72,40 +71,13 @@ export function SalesChart() {
 
   useEffect(() => {
     fetchSalesData();
-
-    // Initialize WebSocket only in browser environment
-    if (typeof window !== 'undefined') {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/api/realtime-sales';
-      const ws = new ReliableWebSocket(
-        wsUrl,
-        (newData) => {
-          setChartData(prev => ({
-            ...prev,
-            amounts: [...prev.amounts.slice(1), newData.amount]
-          }));
-          setLastUpdated(new Date().toLocaleTimeString());
-        },
-        (error) => {
-          setError(`Realtime update: ${error}`);
-        },
-        (connected) => {
-          setIsConnected(connected);
-          if (connected) setError(null);
-        }
-      );
-      setWsInstance(ws);
-
-      return () => {
-        ws.close();
-      };
-    }
+    const refreshTimer = window.setInterval(fetchSalesData, 60_000);
+    return () => window.clearInterval(refreshTimer);
   }, [fetchSalesData]);
 
   const handleRefresh = () => {
     setError(null);
     fetchSalesData();
-    wsInstance?.close();
-    setWsInstance(null);
   };
 
   const data = {
@@ -114,8 +86,8 @@ export function SalesChart() {
       {
         label: "Sales Revenue (₹)",
         data: chartData.amounts,
-        borderColor: isConnected ? "rgb(59, 130, 246)" : "rgb(239, 68, 68)",
-        backgroundColor: isConnected ? "rgba(59, 130, 246, 0.1)" : "rgba(239, 68, 68, 0.1)",
+        borderColor: "rgb(153, 111, 214)",
+        backgroundColor: "rgba(153, 111, 214, 0.1)",
         tension: 0.4,
         borderWidth: 2,
         pointRadius: 4,
@@ -133,8 +105,8 @@ export function SalesChart() {
       },
       tooltip: {
         callbacks: {
-          label: (context: any) => {
-            return `₹${context.raw.toLocaleString()}`;
+          label: (context: TooltipItem<'line'>) => {
+            return `₹${Number(context.raw).toLocaleString()}`;
           }
         }
       }
@@ -143,7 +115,7 @@ export function SalesChart() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: any) => `₹${value}`,
+          callback: (value: string | number) => `₹${Number(value).toLocaleString()}`,
         },
       },
     },
@@ -153,10 +125,7 @@ export function SalesChart() {
     <div className="relative h-full">
       <div className="absolute top-2 right-2 flex items-center gap-3 z-10">
         <div className="flex items-center gap-1">
-          <div 
-            className={`h-3 w-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
-            title={isConnected ? 'Connected' : 'Disconnected'}
-          />
+          <span className="text-xs text-gray-500">Auto refresh: 1 min</span>
           {lastUpdated && (
             <span className="text-xs text-gray-500">
               Updated: {lastUpdated}

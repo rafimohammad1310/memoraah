@@ -1,26 +1,42 @@
-// src/components/admin/TrafficChart.tsx
+// components/admin/TrafficChart.tsx
 "use client";
-import { Doughnut } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-export function TrafficChart() {
-  const data = {
-    labels: ['Direct', 'Organic', 'Referral', 'Social'],
-    datasets: [
-      {
-        data: [30, 40, 20, 10],
-        backgroundColor: [
-          'rgba(99, 102, 241, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)'
-        ],
-        borderWidth: 0,
-      },
-    ],
-  };
+export function TrafficChart({ data }: { data?: TrafficSource[] }) {
+  const chartData = data || [];
 
-  return <Doughnut data={data} />;
+  if (!chartData.length) return <div className="flex h-full items-center justify-center text-sm text-gray-500">No visits recorded yet. Traffic tracking starts after deployment of this update.</div>;
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie
+          data={chartData}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          outerRadius={80}
+          fill="#8884d8"
+          dataKey="value"
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+        >
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip 
+          formatter={(value: number) => [`${value} visits`, 'Visits']}
+        />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  );
 }
+
+type TrafficSource = {
+  name: string;
+  value: number;
+  percentage?: number;
+};

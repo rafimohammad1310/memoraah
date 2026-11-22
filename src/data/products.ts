@@ -7,7 +7,7 @@ export const products = [
     images: [
       "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1616627459991-2aa4ef2203b2?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1602524205959-08d5b9f85f3f?auto=format&fit=crop&w=600&q=80",
+      "/image2.png",
     ],
   },
   {

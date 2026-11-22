@@ -1,3 +1,4 @@
+// src/app/cart/page.tsx
 "use client";
 
 import { useCart } from "@/context/CartContext";
@@ -5,38 +6,47 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiShoppingBag, FiX, FiArrowRight, FiTrash2 } from "react-icons/fi";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 export default function CartPage() {
   const { cartItems, totalPrice, removeFromCart, clearCart } = useCart();
-  const [isLoading, setIsLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const safeTotalPrice = Number(totalPrice) || 0;
+  // Memoized values to prevent re-calculations on every render
+  const totalQuantity = useMemo(
+    () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
+    [cartItems]
+  );
+  const safeTotalPrice = useMemo(() => Number(totalPrice) || 0, [totalPrice]);
 
   const handleCheckout = () => {
     setIsLoading(true);
     router.push("/checkout");
   };
 
+  if (!isClient) {
+    return null; // Avoid hydration mismatch
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Futuristic Navbar */}
       <nav className="bg-white/80 backdrop-blur-md shadow-sm p-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
-           MEMORAAH
+            MEMORAAH
           </Link>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl font-bold text-gray-900 mb-8"
@@ -44,7 +54,7 @@ export default function CartPage() {
           Your Shopping Cart
         </motion.h1>
 
-        {isClient && cartItems.length === 0 ? (
+        {cartItems.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -68,12 +78,12 @@ export default function CartPage() {
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Cart Items ({isClient ? cartItems.reduce((acc, item) => acc + item.quantity, 0) : 0})
+                    Cart Items ({totalQuantity})
                   </h2>
                 </div>
-                
+
                 <AnimatePresence>
-                  {isClient && cartItems.map((item) => (
+                  {cartItems.map((item) => (
                     <motion.div
                       key={item.id}
                       initial={{ opacity: 0, x: -20 }}
@@ -95,16 +105,10 @@ export default function CartPage() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-medium text-gray-900 truncate">
-                            {item.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            ₹{Number(item.price).toFixed(2)}
-                          </p>
+                          <h3 className="text-base font-medium text-gray-900 truncate">{item.name}</h3>
+                          <p className="text-sm text-gray-500 mt-1">₹{Number(item.price).toFixed(2)}</p>
                           <div className="flex items-center mt-2">
-                            <span className="text-sm bg-gray-100 px-2 py-1 rounded">
-                              Qty: {item.quantity}
-                            </span>
+                            <span className="text-sm bg-gray-100 px-2 py-1 rounded">Qty: {item.quantity}</span>
                           </div>
                         </div>
                         <button
@@ -132,16 +136,14 @@ export default function CartPage() {
 
             {/* Order Summary Card */}
             <div className="lg:col-span-1">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="bg-white rounded-xl shadow-sm p-6 sticky top-24"
               >
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Order Summary
-                </h2>
-                
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
@@ -171,8 +173,8 @@ export default function CartPage() {
                   disabled={isLoading || cartItems.length === 0}
                   className={`w-full flex items-center justify-center px-6 py-3 rounded-lg text-white font-medium transition-all ${
                     isLoading || cartItems.length === 0
-                      ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 shadow-lg'
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 shadow-lg"
                   }`}
                 >
                   {isLoading ? (

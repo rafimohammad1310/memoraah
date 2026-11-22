@@ -2,8 +2,11 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { subMonths, format, eachMonthOfInterval } from 'date-fns';
+import { requireAdmin } from '@/lib/admin/requireAdmin';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { response } = await requireAdmin(request);
+  if (response) return response;
   try {
     // Verify Firebase connection
     if (!adminDb) {
@@ -44,7 +47,7 @@ export async function GET() {
         total: Number(data.total) || 0,
         timestamp: data.timestamp.toDate()
       };
-    }).filter(Boolean);
+    }).filter((order): order is NonNullable<typeof order> => order !== null);
 
     // Create month range
     const monthsInRange = eachMonthOfInterval({

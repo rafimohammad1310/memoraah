@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { adminFetch } from "@/lib/admin/client";
 
 interface Order {
   id: string;
@@ -36,13 +37,12 @@ export function RecentOrders({ limit = 5 }: RecentOrdersProps) {
     return statusColors[status as keyof typeof statusColors] || statusColors.default;
   };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const res = await fetch('/api/orders');
+        const res = await adminFetch('/api/orders');
         
         if (!res.ok) {
           throw new Error(`Failed to fetch orders: ${res.status}`);
@@ -69,14 +69,15 @@ export function RecentOrders({ limit = 5 }: RecentOrdersProps) {
       } finally {
         setLoading(false);
       }
-    };
+  }, []);
 
+  useEffect(() => {
     fetchOrders();
 
     // Optional: Set up polling to refresh data every 30 seconds
     const intervalId = setInterval(fetchOrders, 30000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [fetchOrders]);
 
   if (loading) {
     return (

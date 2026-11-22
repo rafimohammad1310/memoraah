@@ -127,7 +127,7 @@ export default function CartDropdown() {
                     <div className="ml-4 flex-grow">
                       <h4 className="font-medium text-sm">{item.name}</h4>
                       <p className="text-gray-500 text-xs mt-1">
-                        ${item.price.toFixed(2)} each
+                        ₹{item.price.toFixed(2)} each
                       </p>
                       
                       <div className="flex justify-between items-center mt-2">
@@ -162,7 +162,7 @@ export default function CartDropdown() {
               <div className="p-4 bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
                   <span className="font-medium">Subtotal:</span>
-                  <span className="font-bold">${totalPrice.toFixed(2)}</span>
+                  <span className="font-bold">₹{totalPrice.toFixed(2)}</span>
                 </div>
                 
                 <div className="flex gap-2">

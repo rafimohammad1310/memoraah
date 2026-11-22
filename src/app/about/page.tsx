@@ -1,9 +1,12 @@
 // app/about/page.tsx
+"use client";
 import Navbar from "@/components/Navbar";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function AboutPage() {
+  const siteSettings = useSiteSettings();
   return (
      <main className="min-h-screen bg-gray-50">
           {/* Enhanced Navbar */}
@@ -13,7 +16,7 @@ export default function AboutPage() {
       {/* Hero Section */}
       <div className="bg-pink-50 py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-pink-700 mb-6">Our Story</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-pink-700 mb-6">{siteSettings.aboutTitle}</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Discover the passion and dedication behind Memorahh
           </p>
@@ -27,7 +30,7 @@ export default function AboutPage() {
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
               <Image
-                src="/about-image.png" // Replace with your actual image path
+                src={siteSettings.aboutImage}
                 alt="About Memorahh"
                 width={600}
                 height={400}
@@ -37,18 +40,7 @@ export default function AboutPage() {
             <div className="md:w-1/2">
               <h2 className="text-3xl font-bold text-gray-800 mb-6">Who We Are</h2>
               <p className="text-gray-600 mb-4">
-                Memorahh is a boutique e-commerce platform dedicated to bringing you unique,
-                handcrafted products that tell a story. Founded in 2023, we started with a simple
-                mission: to connect artisans with customers who appreciate quality and craftsmanship.
-              </p>
-              <p className="text-gray-600 mb-4">
-                Our team is composed of passionate individuals who believe in the power of meaningful
-                purchases. Every product in our collection is carefully curated to ensure it meets
-                our high standards of quality, sustainability, and aesthetic appeal.
-              </p>
-              <p className="text-gray-600">
-                We're more than just a store - we're a community of like-minded individuals who
-                value authenticity and the human touch in every creation.
+                {siteSettings.aboutText}
               </p>
             </div>
           </div>
@@ -100,7 +92,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Sustainability</h3>
               <p className="text-gray-600">
-                We're committed to eco-friendly practices, from sourcing to packaging, to minimize
+                We&apos;re committed to eco-friendly practices, from sourcing to packaging, to minimize
                 our environmental impact.
               </p>
             </div>
@@ -139,19 +131,19 @@ export default function AboutPage() {
                 name: "Rafi Mohammad",
                 role: "Founder",
                 bio: "With a background in design and a passion for craftsmanship, Alex started Memorahh to bridge the gap between artisans and modern consumers.",
-                image: "/team11.jpeg", // Replace with actual image
+                image: siteSettings.teamImages[0] || "/team11.jpeg",
               },
               {
                 name: "Arjun Sai Salendra",
                 role: "Founder",
                 bio: "Sarah ensures every aspect of our business runs smoothly, from inventory management to customer satisfaction.",
-                image: "/team21.jpeg", // Replace with actual image
+                image: siteSettings.teamImages[1] || "/team21.jpeg",
               },
               {
                 name: "Michael Rodriguez",
                 role: "Creative Director",
                 bio: "Michael curates our product selection and oversees the visual storytelling of our brand.",
-                image: "/team3.jpg", // Replace with actual image
+                image: siteSettings.teamImages[2] || "/team1.jpeg",
               },
             ].map((member, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-sm text-center">

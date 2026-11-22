@@ -23,6 +23,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, categoryName }: ProductCardProps) {
   const { addToCart } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const [imageSrc, setImageSrc] = useState(product.images?.[0] || "/image1.png");
 
   const handleAddToCart = () => {
     setIsAdding(true);
@@ -37,14 +38,15 @@ export default function ProductCard({ product, categoryName }: ProductCardProps)
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
       <div className="relative h-60 w-full overflow-hidden">
-        {product.images && product.images.length > 0 ? (
+        {imageSrc ? (
           <Image
-            src={product.images[0]}
+            src={imageSrc}
             alt={product.name}
             fill
             style={{ objectFit: "cover" }}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             quality={85}
+            onError={() => setImageSrc("/image1.png")}
           />
         ) : (
           <div className="h-full w-full bg-gray-200 flex items-center justify-center">
@@ -84,7 +86,7 @@ export default function ProductCard({ product, categoryName }: ProductCardProps)
         
         <div className="flex justify-between items-center">
           <span className="font-bold text-lg">
-            ${product.price.toFixed(2)}
+            ₹{product.price.toFixed(2)}
           </span>
           
           <button

@@ -1,8 +1,11 @@
 // components/Footer.tsx
+"use client";
 import Link from "next/link";
-import { Instagram, Facebook, Twitter, Mail, Phone, MapPin } from "lucide-react";
+import { useSiteSettings } from "@/lib/useSiteSettings";
+import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from "lucide-react";
 
 export default function Footer() {
+  const settings = useSiteSettings();
   return (
     <footer className="bg-gray-900 text-white pt-16 pb-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,21 +32,21 @@ export default function Footer() {
                 <circle cx="18.5" cy="15.5" r="2.5" />
                 <path d="M20.27 17.27 22 19" />
               </svg>
-              <span className="font-bold text-xl">MEMORAAH</span>
+              <span className="font-bold text-xl">{settings.brandName.toUpperCase()}</span>
             </div>
             <p className="text-gray-300 mb-6">
-              Curated, handcrafted products that tell a story. We connect artisans with customers who appreciate quality and craftsmanship.
+              {settings.footerText}
             </p>
             <div className="flex space-x-4">
-              <Link href="#" className="text-gray-400 hover:text-pink-500 transition">
+              {settings.facebook && <a href={settings.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="text-gray-400 hover:text-pink-500 transition">
                 <Facebook className="w-5 h-5" />
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-pink-500 transition">
+              </a>}
+              {settings.instagram && <a href={settings.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="text-gray-400 hover:text-pink-500 transition">
                 <Instagram className="w-5 h-5" />
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-pink-500 transition">
-                <Twitter className="w-5 h-5" />
-              </Link>
+              </a>}
+              {settings.youtube && <a href={settings.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="text-gray-400 hover:text-pink-500 transition">
+                <Youtube className="w-5 h-5" />
+              </a>}
             </div>
           </div>
 
@@ -85,19 +88,15 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start">
                 <Mail className="w-5 h-5 text-pink-500 mr-3 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-300">connect@memoraah.in</span>
+                <span className="text-gray-300">{settings.contactEmail}</span>
               </li>
               <li className="flex items-start">
                 <Phone className="w-5 h-5 text-pink-500 mr-3 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-300">+1 (555) 123-4567</span>
+                <span className="text-gray-300">{settings.contactPhone}</span>
               </li>
               <li className="flex items-start">
                 <MapPin className="w-5 h-5 text-pink-500 mr-3 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-300">
-                  123 Design Street<br />
-                  Creative District<br />
-                  New York, NY 10001
-                </span>
+                <span className="text-gray-300">{settings.contactAddress}</span>
               </li>
             </ul>
           </div>
@@ -107,7 +106,7 @@ export default function Footer() {
         {/* Copyright - Updated with your requested changes */}
         <div className="mt-12 pt-8 border-t border-gray-800 text-center">
           <p className="text-gray-400 text-sm">
-            &copy; {new Date().getFullYear()} <span className="text-white font-semibold">Memoraah</span>. All rights reserved.
+            &copy; {new Date().getFullYear()} <span className="text-white font-semibold">{settings.brandName}</span>. All rights reserved.
           </p>
         </div>
       </div>

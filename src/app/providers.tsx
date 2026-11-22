@@ -1,32 +1,18 @@
-// app/providers.tsx
-'use client';
+// src/app/providers.tsx
+"use client";
 
-import { SessionProvider } from 'next-auth/react';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { CartProvider } from "@/context/CartContext";
+import { UserProvider } from "@/context/UserContext";
+import { AuthProvider } from "@/context/AuthContext";
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const handleError = (error: Error) => {
-      console.error('Authentication error:', error);
-      router.refresh(); // Try refreshing on error
-    };
-
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, [router]);
-
+export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider
-      refetchInterval={300} // 5 minutes
-      refetchOnWindowFocus={true}
-      onError={(error) => {
-        console.error('Session error:', error);
-      }}
-    >
-      {children}
-    </SessionProvider>
+    <AuthProvider>
+      <UserProvider>
+        <CartProvider>
+          {children}
+        </CartProvider>
+      </UserProvider>
+    </AuthProvider>
   );
 }

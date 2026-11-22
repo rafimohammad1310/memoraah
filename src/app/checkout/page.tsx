@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiCheckCircle, FiAlertCircle, FiLoader, FiArrowRight, FiX, FiTag } from "react-icons/fi";
+import { FiCheckCircle, FiAlertCircle, FiLoader, FiArrowRight, FiX, FiTag, FiUser } from "react-icons/fi";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import Navbar from "@/components/Navbar";
 
 interface Promotion {
   id: string;
@@ -26,6 +28,7 @@ export default function CheckoutPage() {
     name: "",
     email: "",
     address: "",
+    landmark: "",
     city: "",
     zip: "",
     phone: ""
@@ -37,10 +40,17 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<Promotion | null>(null);
   const [couponError, setCouponError] = useState("");
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const router = useRouter();
+  const auth = getAuth();
 
   useEffect(() => {
-    // Preload Razorpay script
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setShowLoginPrompt(true);
+      }
+    });
+
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
@@ -48,6 +58,7 @@ export default function CheckoutPage() {
 
     return () => {
       document.body.removeChild(script);
+      unsubscribe();
     };
   }, []);
 
@@ -59,9 +70,7 @@ export default function CheckoutPage() {
   const applyCoupon = async () => {
     try {
       setCouponError("");
-      if (!couponCode) {
-        throw new Error("Please enter a coupon code");
-      }
+      if (!couponCode) throw new Error("Please enter a coupon code");
 
       const querySnapshot = await getDocs(
         query(
@@ -71,9 +80,7 @@ export default function CheckoutPage() {
         )
       );
 
-      if (querySnapshot.empty) {
-        throw new Error("Invalid or expired coupon code");
-      }
+      if (querySnapshot.empty) throw new Error("Invalid or expired coupon code");
 
       const promo = querySnapshot.docs[0].data() as Promotion;
       const currentDate = new Date();
@@ -103,7 +110,7 @@ export default function CheckoutPage() {
 
   const calculateDiscount = () => {
     if (!appliedCoupon) return 0;
-
+    
     let discount = 0;
     if (appliedCoupon.discountType === "percentage") {
       discount = totalPrice * (appliedCoupon.discountValue / 100);
@@ -113,7 +120,6 @@ export default function CheckoutPage() {
     } else {
       discount = appliedCoupon.discountValue;
     }
-
     return discount;
   };
 
@@ -123,26 +129,36 @@ export default function CheckoutPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
     try {
-      // Validate form
+      const user = auth.currentUser;
+      if (!user) {
+        setShowLoginPrompt(true);
+        return;
+      }
       if (!formData.name || !formData.email || !formData.address || !formData.city || !formData.zip) {
         throw new Error("Please fill all required fields");
       }
-
       if (cartItems.length === 0) {
         throw new Error("Your cart is empty");
       }
+      
+      // Store the coupon details along with the order
+      const couponDetails = appliedCoupon ? {
+        code: appliedCoupon.code,
+        discountType: appliedCoupon.discountType,
+        discountValue: appliedCoupon.discountValue,
+        discountAmount: calculateDiscount()
+      } : null;
 
-      // Store cart data as backup
       localStorage.setItem('pendingOrder', JSON.stringify({
         items: cartItems,
         total: discountedTotal,
+        subtotal: totalPrice,
         shippingInfo: formData,
-        coupon: appliedCoupon
+        coupon: couponDetails
       }));
-
-      setActiveStep(2); // Move to payment step
+      
+      setActiveStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       console.error("Checkout error:", err);
@@ -152,23 +168,24 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setPaymentInitiated(true);
-    
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY || "rzp_test_FOAiHIpRFqmi6t",
       amount: Math.round(discountedTotal * 100),
       currency: "INR",
-      name: "Nexus Store",
+      name: "Memoraah",
       description: `Order for ${formData.name}`,
       image: "/logo.png",
       handler: function (response: any) {
         if (response.razorpay_payment_id) {
-          // Store payment ID temporarily
           const orderData = JSON.parse(localStorage.getItem('pendingOrder') || '{}');
           orderData.paymentId = response.razorpay_payment_id;
           localStorage.setItem('pendingOrder', JSON.stringify(orderData));
-          
-          // Navigate to success page
           router.push('/order-success');
         } else {
           setError("Payment failed. Please try again.");
@@ -181,7 +198,7 @@ export default function CheckoutPage() {
         contact: formData.phone || "9000000000"
       },
       notes: {
-        address: formData.address
+        address: `${formData.address}, ${formData.landmark ? `Near ${formData.landmark}, ` : ''}${formData.city}, ${formData.zip}`
       },
       theme: {
         color: "#6366f1"
@@ -194,7 +211,6 @@ export default function CheckoutPage() {
         }
       }
     };
-
     try {
       if ((window as any).Razorpay) {
         const rzp = new (window as any).Razorpay(options);
@@ -215,29 +231,40 @@ export default function CheckoutPage() {
     visible: { opacity: 1, y: 0 }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <nav className="bg-white shadow-sm p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-indigo-600">Nexus</h1>
-          <div className="flex items-center space-x-2">
-            {[1, 2].map((step) => (
-              <div key={step} className="flex items-center">
-                <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center 
-                    ${activeStep >= step ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'}`}
-                >
-                  {step}
-                </div>
-                {step < 2 && (
-                  <div className={`w-12 h-1 mx-1 ${activeStep > step ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
-                )}
-              </div>
-            ))}
+  if (showLoginPrompt) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-sm p-8 max-w-md w-full text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 mb-4">
+            <FiUser className="h-6 w-6 text-indigo-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
+          <p className="text-gray-600 mb-6">
+            Please login to proceed with your checkout. Your cart items will be saved.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push(`/login?redirect=${encodeURIComponent('/checkout')}`)}
+              className="w-full flex justify-center items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition"
+            >
+              Login / Register
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="w-full flex justify-center items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition"
+            >
+              Continue Shopping
+            </button>
           </div>
         </div>
-      </nav>
+      </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <Navbar />
+      
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait">
           {error && (
@@ -309,6 +336,17 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Landmark (Optional)</label>
+                    <input
+                      type="text"
+                      name="landmark"
+                      value={formData.landmark}
+                      onChange={handleChange}
+                      placeholder="Nearby famous place, building, or location"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
                     <input
@@ -334,7 +372,6 @@ export default function CheckoutPage() {
                 </div>
                 <div className="pt-2">
                   <button
-                  onClick={handlePayment}
                     type="submit"
                     disabled={loading || cartItems.length === 0}
                     className="w-full flex justify-center items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -366,13 +403,19 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment</h2>
               <div className="space-y-6">
                 <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                  <div className="flex items-center">
-                    <div className="bg-indigo-100 p-2 rounded-full mr-3">
+                  <div className="flex items-start">
+                    <div className="bg-indigo-100 p-2 rounded-full mr-3 mt-0.5">
                       <FiCheckCircle className="text-indigo-600 w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-gray-900">Shipping Information Verified</h3>
-                      <p className="text-sm text-gray-500">Your details have been confirmed</p>
+                      <h3 className="font-medium text-gray-900">Shipping Information Confirmed</h3>
+                      <div className="mt-2 text-sm text-gray-700 space-y-1">
+                        <p><span className="font-medium">Name:</span> {formData.name}</p>
+                        <p><span className="font-medium">Address:</span> {formData.address}</p>
+                        {formData.landmark && <p><span className="font-medium">Landmark:</span> Near {formData.landmark}</p>}
+                        <p><span className="font-medium">City:</span> {formData.city}, {formData.zip}</p>
+                        <p><span className="font-medium">Contact:</span> {formData.phone || 'Not provided'}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -384,10 +427,28 @@ export default function CheckoutPage() {
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Redirecting to Payment Gateway</h3>
                     <p className="text-gray-500">Please complete your payment in the popup window</p>
+                    <p className="text-sm text-gray-400 mt-4">If the payment window didn't open, check your browser's popup settings</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                      <h3 className="font-medium text-yellow-800 mb-2">Payment Method</h3>
+                      <p className="text-sm text-yellow-700">We'll redirect you to Razorpay's secure payment gateway to complete your transaction</p>
+                    </div>
+                    <button
+                      onClick={handlePayment}
+                      disabled={loading}
+                      className="w-full flex justify-center items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {loading ? (
+                        <>
+                          <FiLoader className="animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Proceed to Pay ₹' + discountedTotal.toFixed(2)
+                      )}
+                    </button>
                     <button
                       onClick={() => setActiveStep(1)}
                       className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center"

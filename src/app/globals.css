@@ -1,9 +1,14 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+:root { --store-theme: #996fd6; }
+[class~="text-[#996fd6]"], [class~="text-pink-500"], [class~="text-pink-600"], [class~="text-purple-700"] { color: var(--store-theme) !important; }
+[class~="bg-[#996fd6]"], [class~="bg-pink-500"], [class~="bg-pink-600"], [class~="bg-purple-700"] { background-color: var(--store-theme) !important; }
+[class~="border-[#996fd6]"], [class~="border-pink-500"] { border-color: var(--store-theme) !important; }
+.storefront > section { padding-block: var(--storefront-section-space, 4rem); }
+:root[data-store-layout="compact"] { --storefront-section-space: 2.5rem; }
+:root[data-store-layout="spacious"] { --storefront-section-space: 6rem; }
+
+:root { --background: #fff; --foreground: #171717; }
 
 @theme inline {
   --color-background: var(--background);
@@ -12,15 +17,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: clip;
 }
+
+img, video { max-width: 100%; }
+ :root { --store-theme: #996fd6; }
+ [class*="text-[#996fd6]"] { color: var(--store-theme) !important; }
+ [class*="bg-[#996fd6]"] { background-color: var(--store-theme) !important; }
+ [class*="border-[#996fd6]"] { border-color: var(--store-theme) !important; }

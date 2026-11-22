@@ -1,31 +1,22 @@
-import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc } from "firebase/firestore";
+import { adminFetch } from "@/lib/admin/client";
 
 export async function getProducts() {
-  const querySnapshot = await getDocs(collection(db, "products"));
-  return querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+  const response = await fetch("/api/products");
+  if (!response.ok) throw new Error("Failed to load products");
+  return response.json();
 }
 
 export async function getProductById(id: string) {
-  const docRef = doc(db, "products", id);
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() };
-  } else {
-    throw new Error("Product not found");
-  }
+  const response = await fetch(`/api/products?id=${encodeURIComponent(id)}`);
+  if (!response.ok) throw new Error("Product not found");
+  return response.json();
 }
 
-export async function saveProduct(data: any, id: string | null = null) {
-  if (id) {
-    // Update existing product
-    const docRef = doc(db, "products", id);
-    await updateDoc(docRef, data);
-  } else {
-    // Add new product
-    await addDoc(collection(db, "products"), data);
-  }
+export async function saveProduct(data: Record<string, unknown>, id: string | null = null) {
+  const response = await adminFetch(id ? `/api/products?id=${encodeURIComponent(id)}` : "/api/products", {
+    method: id ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to save product");
 }

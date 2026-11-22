@@ -4,10 +4,10 @@
 import { useState } from "react";
 import { Menu, X, ShoppingCart, User, LogIn, LogOut, Package } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 
 
 export default function Navbar() {
@@ -16,6 +16,7 @@ export default function Navbar() {
   const { cartItems } = useCart();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
+  const settings = useSiteSettings();
   
   // This would come from your auth context/provider
   const handleLogout = async () => {
@@ -47,6 +48,7 @@ export default function Navbar() {
             strokeLinecap="round"
             strokeLinejoin="round"
             className="text-pink-500"
+            style={{ color: "var(--store-theme)" }}
           >
             <path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14" />
             <path d="M16.5 9.4 7.55 4.24" />
@@ -55,7 +57,7 @@ export default function Navbar() {
             <circle cx="18.5" cy="15.5" r="2.5" />
             <path d="M20.27 17.27 22 19" />
           </svg>
-          <span className="font-bold text-xl">MEMORAAH</span>
+          <span className="font-bold text-xl">{settings.brandName.toUpperCase()}</span>
         </Link>
 
         {/* Desktop Navigation */}

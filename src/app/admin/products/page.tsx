@@ -1,12 +1,11 @@
-// app/admin/products/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import Image from "next/image";
+import { adminFetch } from "@/lib/admin/client";
 
 const MAX_IMAGES = 5;
 
@@ -40,13 +39,12 @@ export default function AdminProducts() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentProductId, setCurrentProductId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
 
   // Fetch all products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("/api/products");
+        const response = await adminFetch("/api/products");
         const data = await response.json();
         setProducts(data);
       } catch (error) {
@@ -71,7 +69,7 @@ export default function AdminProducts() {
       
       const method = isEditing ? "PUT" : "POST";
       
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +84,7 @@ export default function AdminProducts() {
         
         // Refresh product list if we're in list view
         if (viewMode === "list") {
-          const updatedResponse = await fetch("/api/products");
+          const updatedResponse = await adminFetch("/api/products");
           const updatedData = await updatedResponse.json();
           setProducts(updatedData);
         }
@@ -134,7 +132,7 @@ export default function AdminProducts() {
       );
       
       // Then delete product from database
-      const response = await fetch(`/api/products?id=${id}`, {
+      const response = await adminFetch(`/api/products?id=${id}`, {
         method: "DELETE",
       });
       
@@ -252,7 +250,7 @@ export default function AdminProducts() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price ($) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) *</label>
                 <input
                   type="number"
                   min="0"
@@ -288,6 +286,7 @@ export default function AdminProducts() {
                   <option value="for-him">For Him</option>
                   <option value="for-her">For Her</option>
                   <option value="for-kids">For Kids</option>
+                  <option value="special-occasions">Special Occasions</option>
                 </select>
               </div>
 
@@ -300,7 +299,7 @@ export default function AdminProducts() {
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label htmlFor="featured" className="ml-2 block text-sm text-gray-700">
-                  Featured Product
+                  Featured Product (will appear in Best Sellers)
                 </label>
               </div>
             </div>
@@ -514,7 +513,7 @@ export default function AdminProducts() {
                         {product.category.replace('-', ' ')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${product.price.toFixed(2)}
+                        ₹{product.price.toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {product.stock}

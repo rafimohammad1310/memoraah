@@ -2,24 +2,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { adminFetch } from "@/lib/admin/client";
+type OrderRecord = { id: string; orderNumber: string; customer?: string; total?: number; status: string; timestamp?: { seconds: number }; shipping?: { name?: string; email?: string; phone?: string; address?: string; city?: string; zip?: string }; items?: { id?: string; name: string; price: number; quantity: number }[]; coupon?: { code: string; discountAmount?: number; discountType?: string; discountValue?: number } | null };
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "orders"));
-        const ordersData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setOrders(ordersData.sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds));
+        const response = await adminFetch("/api/orders?all=true");
+        if (!response.ok) throw new Error("Unable to load orders");
+        const result = await response.json();
+        setOrders(result);
       } catch (err) {
         console.error("Error fetching orders:", err);
         setError("Failed to fetch orders");
@@ -33,9 +31,8 @@ export default function OrdersPage() {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      await updateDoc(doc(db, "orders", orderId), {
-        status
-      });
+      const response = await adminFetch("/api/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, status }) });
+      if (!response.ok) throw new Error("Unable to update order");
       setOrders(orders.map(order => 
         order.id === orderId ? {...order, status} : order
       ));
@@ -75,7 +72,7 @@ export default function OrdersPage() {
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="border-b py-3 px-4">{order.orderNumber}</td>
                     <td className="border-b py-3 px-4">{order.shipping?.name}</td>
-                    <td className="border-b py-3 px-4">₹{order.total.toFixed(2)}</td>
+                    <td className="border-b py-3 px-4">₹{Number(order.total || 0).toFixed(2)}</td>
                     <td className="border-b py-3 px-4">
                       <select
                         value={order.status}
@@ -131,7 +128,7 @@ export default function OrdersPage() {
                     <div>
                       <h3 className="font-semibold mb-2">Order Items</h3>
                       <div className="space-y-3">
-                        {selectedOrder.items?.map((item: any) => (
+                        {selectedOrder.items?.map((item) => (
                           <div key={item.id} className="flex justify-between border-b pb-2">
                             <div>
                               <p>{item.name}</p>
@@ -142,8 +139,9 @@ export default function OrdersPage() {
                         ))}
                         <div className="pt-2 font-bold">
                           <div className="flex justify-between">
-                            <span>Total:</span>
-                            <span>₹{selectedOrder.total.toFixed(2)}</span>
+                            {selectedOrder.coupon?.code && <div className="w-full border-t pt-2 text-sm font-normal"><div className="flex justify-between"><span>Coupon ({selectedOrder.coupon.code})</span><span>−₹{Number(selectedOrder.coupon.discountAmount || 0).toFixed(2)}</span></div><div className="flex justify-between text-gray-500"><span>Subtotal before discount</span><span>₹{(Number(selectedOrder.total || 0)+Number(selectedOrder.coupon.discountAmount || 0)).toFixed(2)}</span></div></div>}
+                            <span>Paid total:</span>
+                            <span>₹{Number(selectedOrder.total || 0).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>

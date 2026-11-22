@@ -1,4 +1,8 @@
 // components/admin/QuickStats.tsx
+function StatItem({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg bg-white p-4 shadow-sm"><p className="text-sm text-gray-500">{label}</p><p className="mt-1 text-xl font-semibold text-gray-900">{value}</p></div>;
+}
+
 export function QuickStats() {
   return (
     <div className="grid grid-cols-2 gap-4">

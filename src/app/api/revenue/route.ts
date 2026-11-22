@@ -1,48 +1,24 @@
 // src/app/api/revenue/route.ts
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { requireAdmin } from '@/lib/admin/requireAdmin';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { response } = await requireAdmin(request);
+  if (response) return response;
   try {
-    console.log("Fetching revenue data...");
-    
-    // 1. First verify we can access any order data
-    const testQuery = await adminDb
+    // Count stored records; only aggregate sale/order data, never customer PII.
+    const [completedOrders, customers] = await Promise.all([adminDb
       .collection('orders')
-      .limit(1)
-      .get();
-
-    if (testQuery.empty) {
-      console.warn("No orders found in collection");
-      return NextResponse.json({
-        totalRevenue: 0,
-        monthlyRevenue: 0,
-        orderCount: 0
-      });
-    }
-
-    const testDoc = testQuery.docs[0];
-    console.log("Test document data structure:", {
-      id: testDoc.id,
-      exists: testDoc.exists,
-      data: testDoc.data(),
-      ref: testDoc.ref.path
-    });
-
-    // 2. Get completed orders with proper field checking
-    const completedOrders = await adminDb
-      .collection('orders')
-      //.where('status', 'in', ['pending'])
-      .get();
+      .limit(5000)
+      .get(), adminDb.collection('users').count().get()]);
 
     // 3. Process orders with validation
     let totalRevenue = 0;
-    const validOrders = [];
+    const validOrders: { id: string; amount: number; status: unknown; timestamp: Date | null }[] = [];
 
     completedOrders.forEach(doc => {
       const orderData = doc.data();
-      console.log(`Processing order ${doc.id}:`, orderData);
-      
       if (orderData && typeof orderData.total !== 'undefined') {
         const amount = Number(orderData.total) || 0;
         totalRevenue += amount;
@@ -55,8 +31,6 @@ export async function GET() {
       }
     });
 
-    console.log(`Found ${validOrders.length} valid completed orders`);
-    console.log("Sample valid order:", validOrders[0]);
 
     // 4. Calculate monthly revenue
     const oneMonthAgo = new Date();
@@ -73,24 +47,21 @@ export async function GET() {
       totalRevenue,
       monthlyRevenue,
       orderCount: validOrders.length,
-      _debug: {
-        sampleOrder: validOrders[0],
-        totalOrdersProcessed: completedOrders.size,
-        validOrdersCount: validOrders.length
-      }
+      customerCount: customers.data().count,
+      limited: completedOrders.size >= 5000
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('Revenue calculation error:', {
-      message: error.message,
-      stack: error.stack,
-      fullError: JSON.stringify(error)
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
     });
     
     return NextResponse.json(
       { 
         error: 'Revenue service unavailable',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
       },
       { status: 503 }
     );

@@ -1,11 +1,10 @@
 // src/app/layout.tsx
 import { GeistSans, GeistMono } from "geist/font";
 import "./globals.css";
-import Footer from '@/components/Footer';
-import { CartProvider } from "@/context/CartContext";
-//import { AuthProvider } from "@/context/AuthContext"; // Optional: if you have a custom auth context
-import { SessionProvider } from "next-auth/react";
-import { AuthProvider } from '@/context/AuthContext';
+import Footer from "@/components/Footer";
+import Providers from "./providers";
+import TrafficTracker from "@/components/TrafficTracker";
+
 export const metadata = {
   title: "My Gift Store",
   description: "Your one-stop store for gifts and collectibles",
@@ -26,14 +25,11 @@ export default function RootLayout({
         ></script>
       </head>
       <body className="antialiased">
-      <AuthProvider>
-        <SessionProvider>
-          <CartProvider>
-            {children}
-             <Footer />
-          </CartProvider>
-        </SessionProvider>
-        </AuthProvider>
+        <Providers>
+          <TrafficTracker />
+          {children}
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

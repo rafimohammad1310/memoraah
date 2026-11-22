@@ -57,12 +57,12 @@ export class ReliableWebSocket {
       };
 
       this.ws.onerror = (event) => {
-        this.handleError('WebSocket error: ' + (event.message || 'Unknown error'));
+        this.handleError('WebSocket error: ' + (event instanceof ErrorEvent && event.message ? event.message : 'Unknown error'));
       };
 
       this.ws.onclose = (event) => {
         if (!this.isManualClose) {
-          this.handleError(`Connection closed: ${event.reason || 'Unknown reason'}`);
+          this.handleError(`Connection closed: ${'reason' in event && typeof event.reason === 'string' && event.reason ? event.reason : 'Unknown reason'}`);
           this.retry();
         }
         this.cleanup();

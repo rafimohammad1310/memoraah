@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { 
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -13,62 +13,74 @@ import {
   User,
   applyActionCode,
   verifyPasswordResetCode,
-  reload
+  reload,
+  UserCredential,
+  setPersistence,
+  browserLocalPersistence,
+  signOut
 } from "firebase/auth";
 import { auth, db } from "@/firebase/config";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import Image from "next/image";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
-
 export default function AuthPage() {
-    // Form states
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [name, setName] = useState("");
-    const [phone, setPhone] = useState("");
-    const [address, setAddress] = useState("");
-  
-    // UI states
-    const [error, setError] = useState("");
-    const [isLogin, setIsLogin] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [emailSent, setEmailSent] = useState(false);
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [verificationChecked, setVerificationChecked] = useState(false);
-    
-    const router = useRouter();
-    const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [error, setError] = useState("");
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [verificationChecked, setVerificationChecked] = useState(false);
+  const [manualRefreshLoading, setManualRefreshLoading] = useState(false);
 
-  // Handle email verification from the link
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get("redirect") || "/";
+
+  useEffect(() => {
+    // Get referral code from URL if exists
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+      // Set cookie as backup
+      document.cookie = `referral_code=${ref}; max-age=${30*24*60*60}; path=/`;
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const handleEmailVerification = async () => {
       const mode = searchParams.get('mode');
       const oobCode = searchParams.get('oobCode');
-  
+
       if (mode === 'verifyEmail' && oobCode) {
         try {
           setLoading(true);
           await applyActionCode(auth, oobCode);
-          
+
           if (auth.currentUser) {
             try {
               await auth.currentUser.reload();
               await auth.currentUser.getIdToken(true);
-              router.push('/');
-            } catch (error) {
+              router.push(redirectPath);
+            } catch (error: any) {
               if (error.code === 'auth/user-token-expired') {
                 setError("Verification complete but session expired. Please log in again.");
-                await auth.signOut();
+                await signOut(auth);
               } else {
                 throw error;
               }
             }
           } else {
             const verifiedEmail = await verifyPasswordResetCode(auth, oobCode);
-            router.push(`/login?email=${encodeURIComponent(verifiedEmail)}&verified=true`);
+            router.push(`/login?email=${encodeURIComponent(verifiedEmail)}&verified=true&redirect=${redirectPath}`);
           }
         } catch (error) {
           setError("Email verification failed. The link may have expired or been already used.");
@@ -77,49 +89,97 @@ export default function AuthPage() {
         }
       }
     };
-  
-    handleEmailVerification();
-  }, [router, searchParams]);
 
-  // Track authentication state
+    handleEmailVerification();
+  }, [router, searchParams, redirectPath]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
-      if (user && !user.emailVerified) {
-        // Check immediately
-        await checkVerificationStatus(user);
-        
-        // Set up less frequent checking (every 10 seconds instead of 2)
-        const interval = setInterval(async () => {
+
+      if (user) {
+        if (!user.emailVerified) {
+          // Only start checking if we haven't already sent verification
+          if (!emailSent) {
+            await sendEmailVerification(user);
+            setEmailSent(true);
+          }
+          
+          // Check immediately
           await checkVerificationStatus(user);
-        }, 10000); // 10 seconds
-        
-        return () => clearInterval(interval);
+          
+          // Then set interval for periodic checks
+          const interval = setInterval(async () => {
+            await checkVerificationStatus(user);
+          }, 10000);
+
+          return () => clearInterval(interval);
+        } else {
+          router.push(redirectPath);
+        }
       }
     });
-  
+
     return () => unsubscribe();
-  }, [router]);
+  }, [router, redirectPath, emailSent]);
+
   const checkVerificationStatus = async (user: User) => {
     try {
-      // Only reload if necessary (not too frequently)
       await user.reload();
+      const updatedUser = auth.currentUser;
       
-      if (user.emailVerified) {
+      if (updatedUser?.emailVerified) {
         setVerificationChecked(true);
-        router.push('/');
+        router.push(redirectPath);
       }
-    } catch (error) {
-      console.error("Error checking verification status:", error);
-      // Handle token expired error specifically
+    } catch (error: any) {
       if (error.code === 'auth/user-token-expired') {
-        // Sign out the user and prompt to log in again
-        await auth.signOut();
         setError("Your session has expired. Please log in again.");
         setCurrentUser(null);
+      } else {
+        console.error("Verification check error:", error);
       }
     }
+  };
+
+  const generateReferralCode = (input: string): string => {
+    const base = input.substring(0, 4).toUpperCase();
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `REF-${base}${random}`;
+  };
+
+  const getCookie = (name: string) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+  };
+
+  const handleSocialSignIn = async (credential: UserCredential) => {
+    const user = credential.user;
+    const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
+
+    if (isNewUser) {
+      const userData = {
+        uid: user.uid,
+        name: user.displayName || name || "",
+        email: user.email || "",
+        phone: user.phoneNumber || phone || "",
+        address: address || "",
+        referralCode: generateReferralCode(user.email || user.uid),
+        referredBy: referralCode || getCookie('referral_code') || null,
+        createdAt: serverTimestamp(),
+        emailVerified: user.emailVerified || false,
+        lastLogin: serverTimestamp()
+      };
+
+      await setDoc(doc(db, "users", user.uid), userData);
+    } else {
+      await updateDoc(doc(db, "users", user.uid), {
+        lastLogin: serverTimestamp()
+      });
+    }
+
+    router.push(redirectPath);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,40 +188,43 @@ export default function AuthPage() {
     setError("");
 
     try {
+      await setPersistence(auth, browserLocalPersistence);
+
       if (isLogin) {
-        // Login logic
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
         if (!userCredential.user.emailVerified) {
           await sendEmailVerification(userCredential.user);
+          setEmailSent(true);
           setError("Please verify your email first. A new verification link has been sent.");
           return;
         }
       } else {
-        // Signup logic
         if (password !== confirmPassword) {
           throw new Error("Passwords don't match");
         }
 
-        // Create user
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        // Send verification email
-        await sendEmailVerification(userCredential.user);
+        // Immediately set email sent state
         setEmailSent(true);
-
-        // Update profile with name
+        
         await updateProfile(userCredential.user, { displayName: name });
+        await sendEmailVerification(userCredential.user);
 
-        // Save additional user data to Firestore
-        await setDoc(doc(db, "users", userCredential.user.uid), {
+        const userData = {
           name,
           email,
           phone,
           address,
-          createdAt: new Date(),
-          emailVerified: false
-        });
+          referralCode: generateReferralCode(email),
+          referredBy: referralCode || getCookie('referral_code') || null,
+          createdAt: serverTimestamp(),
+          emailVerified: false,
+          lastLogin: serverTimestamp()
+        };
+        
+        await setDoc(doc(db, "users", userCredential.user.uid), userData);
       }
     } catch (err: any) {
       handleAuthError(err);
@@ -180,23 +243,9 @@ export default function AuthPage() {
     }
   };
 
-  const handleSocialSignIn = async (credential: UserCredential) => {
-    // Save additional user data if it's a new user
-    if (credential.user.metadata.creationTime === credential.user.metadata.lastSignInTime) {
-      await setDoc(doc(db, "users", credential.user.uid), {
-        name: credential.user.displayName,
-        email: credential.user.email,
-        phone: credential.user.phoneNumber || "",
-        createdAt: new Date(),
-        emailVerified: true
-      });
-    }
-    router.push("/");
-  };
-
   const handleAuthError = (err: any) => {
     let errorMessage = "An error occurred";
-    
+
     switch (err.code) {
       case "auth/email-already-in-use":
         errorMessage = "Email already in use";
@@ -217,7 +266,7 @@ export default function AuthPage() {
       default:
         errorMessage = err.message || "Authentication failed";
     }
-    
+
     setError(errorMessage);
   };
 
@@ -235,6 +284,18 @@ export default function AuthPage() {
     }
   };
 
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
+    if (emailSent && !verificationChecked) {
+      timeout = setTimeout(() => {
+        setError("Verification is taking longer than expected. Please check your email and refresh the page.");
+      }, 300000); // 5 minutes
+    }
+
+    return () => clearTimeout(timeout);
+  }, [emailSent, verificationChecked]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md overflow-hidden">
@@ -242,7 +303,7 @@ export default function AuthPage() {
           <h1 className="text-2xl font-bold text-center text-gray-800">
             {emailSent ? "Verify Your Email" : isLogin ? "Welcome Back" : "Create Your Account"}
           </h1>
-          
+
           {error && (
             <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md">
               {error}
@@ -262,13 +323,11 @@ export default function AuthPage() {
             <div className="space-y-4 text-center">
               <p className="text-gray-600">
                 We've sent a verification link to <span className="font-medium">{email}</span>.
-                Please click the link in that email to complete your registration.
               </p>
-              
               <p className="text-sm text-gray-500">
                 You'll be automatically redirected once verified. This may take a few seconds.
               </p>
-              
+
               <div className="pt-4">
                 <button
                   onClick={resendVerification}
@@ -281,25 +340,26 @@ export default function AuthPage() {
 
               <button
                 onClick={async () => {
-                  setLoading(true);
+                  setManualRefreshLoading(true);
                   try {
                     if (auth.currentUser) {
-                      await reload(auth.currentUser);
+                      await auth.currentUser.reload();
                       if (auth.currentUser.emailVerified) {
-                        router.push('/');
+                        router.push(redirectPath);
                       } else {
                         setError("Email not verified yet. Please check your inbox.");
                       }
                     }
                   } catch (err) {
-                    setError("Failed to check verification status.");
+                    setError("Failed to check verification status. Try logging in again.");
                   } finally {
-                    setLoading(false);
+                    setManualRefreshLoading(false);
                   }
                 }}
+                disabled={manualRefreshLoading}
                 className="text-blue-600 hover:text-blue-500 font-medium text-sm"
               >
-                I've verified my email - Refresh status
+                {manualRefreshLoading ? 'Checking...' : 'I\'ve verified my email - Refresh status'}
               </button>
             </div>
           ) : (
@@ -310,13 +370,7 @@ export default function AuthPage() {
                   disabled={loading}
                   className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <Image 
-                    src="/google-logo.png" 
-                    alt="Google" 
-                    width={20} 
-                    height={20}
-                    priority
-                  />
+                  <Image src="/google-logo.png" alt="Google" width={20} height={20} priority />
                   Continue with Google
                 </button>
               </div>
@@ -333,101 +387,43 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                   <div className="space-y-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      Full Name
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                      disabled={loading}
-                    />
+                    <label htmlFor="name">Full Name</label>
+                    <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required disabled={loading} />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                    disabled={loading}
-                  />
+                  <label htmlFor="email">Email Address</label>
+                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
                 </div>
 
                 {!isLogin && (
-                  <div className="space-y-2">
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                      Phone Number
-                    </label>
-                    <PhoneInput
-                      country={'in'}
-                      value={phone}
-                      onChange={setPhone}
-                      inputClass="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      inputProps={{
-                        required: true,
-                        disabled: loading
-                      }}
-                    />
-                  </div>
-                )}
-
-                {!isLogin && (
-                  <div className="space-y-2">
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                      Address
-                    </label>
-                    <textarea
-                      id="address"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={3}
-                      disabled={loading}
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <label htmlFor="phone">Phone Number</label>
+                      <PhoneInput
+                        country={'in'}
+                        value={phone}
+                        onChange={setPhone}
+                        inputProps={{ required: true, disabled: loading }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="address">Address</label>
+                      <textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} rows={3} disabled={loading} />
+                    </div>
+                  </>
                 )}
 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                    minLength={6}
-                    disabled={loading}
-                  />
+                  <label htmlFor="password">Password</label>
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} disabled={loading} />
                 </div>
 
                 {!isLogin && (
                   <div className="space-y-2">
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                      Confirm Password
-                    </label>
-                    <input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                      minLength={6}
-                      disabled={loading}
-                    />
+                    <label htmlFor="confirmPassword">Confirm Password</label>
+                    <input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} disabled={loading} />
                   </div>
                 )}
 
@@ -438,15 +434,7 @@ export default function AuthPage() {
                     loading ? 'opacity-70 cursor-not-allowed' : ''
                   }`}
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {isLogin ? 'Signing in...' : 'Creating account...'}
-                    </span>
-                  ) : isLogin ? 'Sign In' : 'Create Account'}
+                  {loading ? (isLogin ? 'Signing in...' : 'Creating account...') : isLogin ? 'Sign In' : 'Create Account'}
                 </button>
               </form>
 

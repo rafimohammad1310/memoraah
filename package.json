@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "set NODE_OPTIONS=--max-old-space-size=8192 && next build",
-    "dev": "set NODE_OPTIONS=--max-old-space-size=8192 && next dev",
+    "build": "next build",
+    "dev": "next dev",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit --incremental false",
+    "admin:grant": "node --env-file=.env.local scripts/set-admin-claim.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.2.0",
@@ -22,6 +24,7 @@
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-switch": "^1.2.2",
     "@radix-ui/react-tabs": "^1.1.9",
+    "@upstash/ratelimit": "^2.0.5",
     "bufferutil": "^4.0.9",
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",
@@ -33,7 +36,7 @@
     "geist": "^1.4.2",
     "lucide-react": "^0.507.0",
     "next": "^15.3.1",
-    "next-auth": "^5.0.0-beta.27",
+    "next-auth": "^4.24.11",
     "next-pwa": "^5.6.0",
     "prisma": "^6.7.0",
     "razorpay": "^2.9.6",
@@ -44,8 +47,10 @@
     "react-hook-form": "^7.56.1",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
+    "react-intersection-observer": "^9.16.0",
     "react-phone-input-2": "^2.15.1",
     "recharts": "^2.15.3",
+    "redis": "^5.5.6",
     "tailwind-merge": "^3.2.0",
     "utf-8-validate": "^6.0.5",
     "ws": "^8.18.2",

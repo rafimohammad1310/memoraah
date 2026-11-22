@@ -4,6 +4,7 @@
 import { useParams } from "next/navigation";
 import { products } from "@/data/products";
 import Image from "next/image";
+import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 
 export default function ProductDetail() {
@@ -52,7 +53,7 @@ export default function ProductDetail() {
             
             <div className="mt-6 space-y-4">
               <button
-                onClick={() => addToCart(product.id)}
+                onClick={() => addToCart({ ...product, id: String(product.id), description: product.description || "", category: "" })}
                 className="w-full px-6 py-3 bg-pink-500 text-white rounded hover:bg-pink-600"
               >
                 Add to Cart
